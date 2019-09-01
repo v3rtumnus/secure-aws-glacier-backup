@@ -17,7 +17,7 @@ dependencies {
     compile 'org.slf4j:slf4j-log4j12:1.7.25'
     compile 'log4j:log4j:1.2.17'
     compile 'com.amazonaws:aws-java-sdk:1.11.611'
-    compile 'org.kamranzafar:jtar:2.3'
+    compile 'org.apache.commons:commons-compress:1.19'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.8'
 

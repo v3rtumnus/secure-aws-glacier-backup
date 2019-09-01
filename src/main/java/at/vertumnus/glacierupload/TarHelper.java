@@ -1,45 +1,43 @@
 package at.vertumnus.glacierupload;
 
-import org.kamranzafar.jtar.TarEntry;
-import org.kamranzafar.jtar.TarOutputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.utils.IOUtils;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class TarHelper {
 
-    public static Path createTarFile(String... files) throws IOException {
-        Path tarFile = Files.createTempFile("backup", ".tar");
+    static void createTarFile(File tarFile, String... files) throws IOException {
 
-        FileOutputStream dest = new FileOutputStream(tarFile.toFile().getAbsolutePath());
-
-        // Create a TarOutputStream
-        TarOutputStream out = new TarOutputStream(new BufferedOutputStream(dest));
-
-        // Files to tar
-        File[] filesToTar = new File[files.length];
-
-        for (int i = 0; i < files.length; i++) {
-            filesToTar[i] = new File(files[i]);
-        }
-
-        for (File f : filesToTar) {
-            out.putNextEntry(new TarEntry(f, f.getName()));
-            BufferedInputStream origin = new BufferedInputStream(new FileInputStream(f));
-
-            int count;
-            byte data[] = new byte[2048];
-            while ((count = origin.read(data)) != -1) {
-                out.write(data, 0, count);
+        try (TarArchiveOutputStream outputStream = new TarArchiveOutputStream(new FileOutputStream(tarFile))){
+            for (String file : files) {
+                addFileToTar(outputStream, file, "");
             }
-
-            out.flush();
-            origin.close();
         }
+    }
 
-        out.close();
+    private static void addFileToTar(TarArchiveOutputStream tOut, String path, String base)
+            throws IOException {
+        File f = new File(path);
+        String entryName = base + f.getName();
+        TarArchiveEntry tarEntry = new TarArchiveEntry(f, entryName);
+        tOut.putArchiveEntry(tarEntry);
 
-        return tarFile;
+        if (f.isFile()) {
+            IOUtils.copy(new FileInputStream(f), tOut);
+            tOut.closeArchiveEntry();
+        } else {
+            tOut.closeArchiveEntry();
+            File[] children = f.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    addFileToTar(tOut, child.getAbsolutePath(), entryName + "/");
+                }
+            }
+        }
     }
 }
