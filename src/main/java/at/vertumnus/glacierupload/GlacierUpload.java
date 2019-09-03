@@ -1,10 +1,12 @@
 package at.vertumnus.glacierupload;
 
+import com.amazonaws.services.glacier.model.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Calendar;
 
 @Slf4j
 public class GlacierUpload {
@@ -21,16 +23,37 @@ public class GlacierUpload {
         String accessKey = System.getProperty("access.key");
         String secretKey = System.getProperty("secret.key");
 
+        //define main vault and secondary vault for this month
+        int backupIndex = (Calendar.getInstance().get(Calendar.MONTH) + 1) % 2;
+
         log.info("Creating tar file under {}", tarFile.getAbsolutePath());
         TarHelper.createTarFile(tarFile, args);
 
         log.info("Starting with encryption of tar file");
         FileEncryptionHelper.encrypt(tarFile.getAbsolutePath(), encryptedFile.getAbsolutePath(), password);
 
-        log.info("Starting with upload to AWS");
-        String archiveId = new AwsClient(accessKey, secretKey, "test").upload(encryptedFile.getAbsolutePath());
+        //first, we delete the backup vault, create the new main one and then upload data
+        AwsClient awsClient = new AwsClient(accessKey, secretKey);
+
+        if (System.getProperties().containsKey("delete.archive")) {
+            log.info("Removing archive");
+            awsClient.deleteArchiveInVault("backup", System.getProperty("delete.archive"));
+        }
+
+        //log.info("Starting with upload to AWS");
+        String archiveId = awsClient.upload("backup", encryptedFile.getAbsolutePath());
 
         log.info("Backup successfully uploaded with archive id {}", archiveId);
+
+        log.info("Removing temporary file");
+        boolean tarFileDeleted = tarFile.delete();
+        boolean encryptedFileDeleted = encryptedFile.delete();
+
+        if (tarFileDeleted && encryptedFileDeleted) {
+            log.info("Temporary files deleted, backup finished");
+        } else {
+            log.error("Could not delete temporary files, backup finished");
+        }
     }
 
     private static boolean validateInput(String... args) {

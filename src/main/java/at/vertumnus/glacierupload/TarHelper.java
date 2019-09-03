@@ -13,7 +13,9 @@ public class TarHelper {
 
     static void createTarFile(File tarFile, String... files) throws IOException {
 
-        try (TarArchiveOutputStream outputStream = new TarArchiveOutputStream(new FileOutputStream(tarFile))){
+        try (TarArchiveOutputStream outputStream = new TarArchiveOutputStream(new FileOutputStream(tarFile))) {
+            outputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
+
             for (String file : files) {
                 addFileToTar(outputStream, file, "");
             }
