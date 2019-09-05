@@ -15,7 +15,7 @@ public class TarHelper {
 
         try (TarArchiveOutputStream outputStream = new TarArchiveOutputStream(new FileOutputStream(tarFile))) {
             outputStream.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
-            outputStream.setBigNumberMode(TarArchiveOutputStream.LONGFILE_POSIX);
+            outputStream.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
 
             for (String file : files) {
                 addFileToTar(outputStream, file, "");

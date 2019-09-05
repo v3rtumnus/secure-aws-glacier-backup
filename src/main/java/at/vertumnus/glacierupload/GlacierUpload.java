@@ -22,6 +22,7 @@ public class GlacierUpload {
         String password = System.getProperty("encryption.password");
         String accessKey = System.getProperty("access.key");
         String secretKey = System.getProperty("secret.key");
+        boolean encryptionDisabled = System.getProperties().containsKey("encryption.disabled");
 
         //define main vault and secondary vault for this month
         int backupIndex = (Calendar.getInstance().get(Calendar.MONTH) + 1) % 2;
@@ -29,8 +30,12 @@ public class GlacierUpload {
         log.info("Creating tar file under {}", tarFile.getAbsolutePath());
         TarHelper.createTarFile(tarFile, args);
 
-        log.info("Starting with encryption of tar file");
-        FileEncryptionHelper.encrypt(tarFile.getAbsolutePath(), encryptedFile.getAbsolutePath(), password);
+        if (encryptionDisabled) {
+            log.info("Starting with encryption of tar file");
+            FileEncryptionHelper.encrypt(tarFile.getAbsolutePath(), encryptedFile.getAbsolutePath(), password);
+        }
+
+        File fileToUpload = encryptionDisabled ? tarFile : encryptedFile;
 
         //first, we delete the backup vault, create the new main one and then upload data
         AwsClient awsClient = new AwsClient(accessKey, secretKey);
@@ -41,13 +46,13 @@ public class GlacierUpload {
         }
 
         //log.info("Starting with upload to AWS");
-        String archiveId = awsClient.upload("backup", encryptedFile.getAbsolutePath());
+        String archiveId = awsClient.upload("backup", fileToUpload.getAbsolutePath());
 
         log.info("Backup successfully uploaded with archive id {}", archiveId);
 
         log.info("Removing temporary file");
         boolean tarFileDeleted = tarFile.delete();
-        boolean encryptedFileDeleted = encryptedFile.delete();
+        boolean encryptedFileDeleted = encryptionDisabled || encryptedFile.delete();
 
         if (tarFileDeleted && encryptedFileDeleted) {
             log.info("Temporary files deleted, backup finished");
