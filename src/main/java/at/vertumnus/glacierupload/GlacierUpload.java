@@ -30,7 +30,7 @@ public class GlacierUpload {
         log.info("Creating tar file under {}", tarFile.getAbsolutePath());
         TarHelper.createTarFile(tarFile, args);
 
-        if (encryptionDisabled) {
+        if (!encryptionDisabled) {
             log.info("Starting with encryption of tar file");
             FileEncryptionHelper.encrypt(tarFile.getAbsolutePath(), encryptedFile.getAbsolutePath(), password);
         }
